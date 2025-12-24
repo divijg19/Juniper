@@ -1,4 +1,4 @@
-# Vertex
+# Juniper
 <div align="center">
 
 
@@ -9,10 +9,10 @@
 
 The Reactive, Constraint-Based Typesetting Engine.
 
-![alt text](https://img.shields.io/github/actions/workflow/status/username/vertex/rust.yml?branch=main)
+![alt text](https://img.shields.io/github/actions/workflow/status/divijg19/Juniper/rust.yml?branch=main)
 
 
-![alt text](https://img.shields.io/crates/v/vertex)
+![alt text](https://img.shields.io/crates/v/Juniper)
 
 
 ![alt text](https://img.shields.io/badge/License-MIT-yellow.svg)
@@ -24,11 +24,11 @@ The Reactive, Constraint-Based Typesetting Engine.
 
 ## 📖 Introduction
 
-Vertex is a modern document compiler designed to supersede LaTeX for the digital age. Built from the ground up in Rust, it prioritizes sub-millisecond compilation, web-native output (HTML5/DOM), and print-perfect PDF generation using a unified Abstract Syntax Tree (AST).
+Juniper (initially named Vertex) is a modern document compiler designed to supersede LaTeX for the digital age. Built from the ground up in Rust, it prioritizes sub-millisecond compilation, web-native output (HTML5/DOM), and print-perfect PDF generation using a unified Abstract Syntax Tree (AST).
 
-Unlike LaTeX, which relies on archaic macro expansion, Vertex uses a strictly typed syntax and embeds WebAssembly (Wasm) for scripting, ensuring that packages are secure, portable, and fast.
+Unlike LaTeX, which relies on archaic macro expansion, Juniper uses a strictly typed syntax and embeds WebAssembly (Wasm) for scripting, ensuring that packages are secure, portable, and fast.
 
-Project Status: Vertex is currently in Alpha. The core layout engine and parser are functional, but API stability is not guaranteed.
+Project Status: Juniper is currently in Alpha. The core layout engine and parser are functional, but API stability is not guaranteed.
 
 ⚡ Key Features
 
@@ -46,7 +46,7 @@ Project Status: Vertex is currently in Alpha. The core layout engine and parser 
 
 📝 The Syntax
 
-Vertex uses a slash command syntax that separates content from configuration. It supports Python-style indentation blocks to eliminate "runaway argument" errors.
+Juniper uses a slash command syntax that separates content from configuration. It supports Python-style indentation blocks to eliminate "runaway argument" errors.
 
 /doc [
     title = "The Future of Typesetting"
@@ -55,7 +55,7 @@ Vertex uses a slash command syntax that separates content from configuration. It
 ]
 
 ## 1. Introduction
-Vertex treats documents as **structured data**. Unlike Markdown, it supports complex
+Juniper treats documents as **structured data**. Unlike Markdown, it supports complex
 attributes. Unlike LaTeX, it is human-readable.
 
 /equation [label="eq:mass-energy"]
@@ -68,7 +68,7 @@ live code results:
     /source file="data.csv" type="scatter"
 🛠️ Architecture (How it works)
 
-Vertex is not a wrapper around TeX. It is a completely new engine built on four distinct stages:
+Juniper is not a wrapper around TeX. It is a completely new engine built on four distinct stages:
 
 1. Lexing & Parsing (/src/parser)
 
@@ -80,7 +80,7 @@ The AST is traversed to expand macros (Wasm plugins) and resolve references. Thi
 
 3. Layout Engine (/src/layout)
 
-This is the core of Vertex. It transforms the logical DOM into a physical Box Model.
+This is the core of Juniper. It transforms the logical DOM into a physical Box Model.
 
 Text Shaping: Uses rustybuzz (a HarfBuzz port) for font shaping, ligatures, and kerning.
 
@@ -104,8 +104,8 @@ Cargo
 
 Installation
 
-git clone https://github.com/divijg19/vertex.git
-cd vertex
+git clone https://github.com/divijg19/Juniper.git
+cd Juniper
 cargo build --release
 
 Usage
@@ -117,9 +117,9 @@ This is my first document.
 
 Compile it:
 
-./target/release/vertex build paper.vtx --format=pdf
+./target/release/Juniper build paper.vtx --format=pdf
 📊 Benchmarks
-Metric	LaTeX (pdflatex)	Vertex (v0.1.0)
+Metric	LaTeX (pdflatex)	Juniper (v0.1.0)
 Cold Start	~1.2s	~0.05s
 Incremental Build	N/A (Full Rebuild)	<10ms
 Error Clarity	! Undefined control sequence	Error: Line 5, Col 12: Unknown command
