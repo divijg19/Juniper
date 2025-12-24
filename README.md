@@ -22,7 +22,7 @@ The Reactive, Constraint-Based Typesetting Engine.
 
 </div>
 
-📖 Introduction
+## 📖 Introduction
 
 Vertex is a modern document compiler designed to supersede LaTeX for the digital age. Built from the ground up in Rust, it prioritizes sub-millisecond compilation, web-native output (HTML5/DOM), and print-perfect PDF generation using a unified Abstract Syntax Tree (AST).
 
@@ -48,18 +48,13 @@ Project Status: Vertex is currently in Alpha. The core layout engine and parser 
 
 Vertex uses a slash command syntax that separates content from configuration. It supports Python-style indentation blocks to eliminate "runaway argument" errors.
 
-code
-Text
-download
-content_copy
-expand_less
 /doc [
     title = "The Future of Typesetting"
     author = "Jane Doe"
     date = auto
 ]
 
-# 1. Introduction
+## 1. Introduction
 Vertex treats documents as **structured data**. Unlike Markdown, it supports complex
 attributes. Unlike LaTeX, it is human-readable.
 
@@ -105,37 +100,23 @@ HTML: Mapped directly to HTML5 Custom Elements with CSS Grid for layout fidelity
 Prerequisites
 
 Rust (latest stable)
-
 Cargo
 
 Installation
-code
-Bash
-download
-content_copy
-expand_less
-git clone https://github.com/username/vertex.git
+
+git clone https://github.com/divijg19/vertex.git
 cd vertex
 cargo build --release
+
 Usage
 
 Create a file named paper.vtx:
 
-code
-Text
-download
-content_copy
-expand_less
 /section "Hello World"
 This is my first document.
 
 Compile it:
 
-code
-Bash
-download
-content_copy
-expand_less
 ./target/release/vertex build paper.vtx --format=pdf
 📊 Benchmarks
 Metric	LaTeX (pdflatex)	Vertex (v0.1.0)
