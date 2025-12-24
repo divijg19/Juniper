@@ -1,155 +1,231 @@
-# Juniper
+# `Juniper`
+
 <div align="center">
 
-
-![alt text](https://via.placeholder.com/150x150.png?text=V)
-
 <!-- Replace with actual logo/banner later -->
+<img src="https://via.placeholder.com/140x140.png?text=J" alt="Juniper Logo" />
 
+### The Reactive, Constraint-Based Typesetting Engine
 
-The Reactive, Constraint-Based Typesetting Engine.
+A modern, Rust-native alternative to LaTeX—designed for speed, safety, and the web.
 
-![alt text](https://img.shields.io/github/actions/workflow/status/divijg19/Juniper/rust.yml?branch=main)
-
-
-![alt text](https://img.shields.io/crates/v/Juniper)
-
-
-![alt text](https://img.shields.io/badge/License-MIT-yellow.svg)
-
-
-![alt text](https://img.shields.io/badge/Language-Rust-orange)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/divijg19/Juniper/rust.yml?branch=main)](https://github.com/divijg19/Juniper/actions)
+[![Crates.io](https://img.shields.io/crates/v/juniper)](https://crates.io/crates/juniper)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
+[![Language: Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org)
 
 </div>
 
-## 📖 Introduction
+---
 
-Juniper (initially named Vertex) is a modern document compiler designed to supersede LaTeX for the digital age. Built from the ground up in Rust, it prioritizes sub-millisecond compilation, web-native output (HTML5/DOM), and print-perfect PDF generation using a unified Abstract Syntax Tree (AST).
+## 📖 Overview
 
-Unlike LaTeX, which relies on archaic macro expansion, Juniper uses a strictly typed syntax and embeds WebAssembly (Wasm) for scripting, ensuring that packages are secure, portable, and fast.
+**Juniper** is a next-generation document compiler built to replace LaTeX for the digital age.
 
-Project Status: Juniper is currently in Alpha. The core layout engine and parser are functional, but API stability is not guaranteed.
+It is **not** a TeX wrapper, nor a macro-driven system. Juniper is a ground-up re-architecture of typesetting as a **reactive, typed, constraint-solved pipeline**, capable of producing:
 
-⚡ Key Features
+- **Print-perfect PDFs**
+- **Accessible, responsive HTML**
+- From the **same source and AST**
 
-🚀 Blazingly Fast: Written in Rust with incremental compilation. Compiles 100-page technical documents in milliseconds.
+Juniper is written entirely in **Rust**, prioritizing:
+- Sub-millisecond incremental builds
+- Memory safety
+- Deterministic output
+- Secure extensibility via WebAssembly
 
-📐 Semantic Syntax: A hybrid of Markdown's brevity and LaTeX's power. No more backslash hell.
+> **Project Status:**  
+> Juniper is currently in **Alpha**. The parser and layout core are functional, but APIs are unstable and subject to change.
 
-🎨 Dual-Head Rendering: Outputs high-fidelity PDF (via SVG) and accessible, responsive HTML from the same source.
+---
 
-🧩 Wasm Plugins: Write packages and extensions in Rust, AssemblyScript, or Go. Logic is sandboxed and secure.
+## ⚡ Key Features
 
-🧮 Modern Math: Integrated OpenType math support (similar to purely numeric TeX engines).
+### 🚀 Performance-First
+- Incremental compilation by default
+- Reactive document graph: only affected nodes recompile
+- Designed to handle 100+ page documents in milliseconds
 
-🧠 Intelligent Layout: Uses a modified Knuth-Plass algorithm for paragraph justification and a Cassowary constraint solver for page layout.
+### 📐 Semantic, Typed Syntax
+- Cleaner than LaTeX, more expressive than Markdown
+- No macro expansion hacks
+- Errors are structural, localized, and readable
 
-📝 The Syntax
+### 🎨 Dual-Target Rendering
+- **PDF**: Print-grade output via SVG / native PDF primitives
+- **HTML**: Web-native DOM with CSS Grid and custom elements
+- Identical layout semantics across formats
 
-Juniper uses a slash command syntax that separates content from configuration. It supports Python-style indentation blocks to eliminate "runaway argument" errors.
+### 🧩 Secure Wasm Plugins
+- Extend Juniper using Rust, AssemblyScript, or Go
+- Fully sandboxed WebAssembly execution
+- No arbitrary filesystem or runtime access
 
+### 🧮 Modern Mathematics
+- Native OpenType math support
+- Proper glyph shaping, alignment, and spacing
+- No legacy TeX math limitations
+
+### 🧠 Constraint-Driven Layout
+- Paragraph justification via Knuth-Plass
+- Page layout solved using constraint systems
+- Intelligent handling of floats, widows, and orphans
+
+---
+
+## 📝 The Juniper Syntax
+
+Juniper separates **content**, **structure**, and **configuration** cleanly.
+
+It uses a slash-command model with indentation-based blocks to eliminate runaway arguments and macro ambiguity.
+
+```juniper
 /doc [
-    title = "The Future of Typesetting"
+    title  = "The Future of Typesetting"
     author = "Jane Doe"
-    date = auto
+    date   = auto
 ]
 
 ## 1. Introduction
-Juniper treats documents as **structured data**. Unlike Markdown, it supports complex
-attributes. Unlike LaTeX, it is human-readable.
+
+Juniper treats documents as **structured data**.
+Unlike Markdown, it supports rich attributes.
+Unlike LaTeX, it is human-readable.
 
 /equation [label="eq:mass-energy"]
     $$ E = mc^2 $$
 
-As seen in /ref[eq:mass-energy], the syntax is clean. We can also import
-live code results:
+As shown in /ref[eq:mass-energy], references are explicit and safe.
 
 /plot [width=50% position=center]
     /source file="data.csv" type="scatter"
-🛠️ Architecture (How it works)
+````
 
-Juniper is not a wrapper around TeX. It is a completely new engine built on four distinct stages:
+---
 
-1. Lexing & Parsing (/src/parser)
+## 🏗️ Architecture
 
-We use a zero-copy recursive descent parser to convert source text into a Concrete Syntax Tree (CST) and then lower it to a strictly typed Abstract Syntax Tree (AST). This ensures that syntax errors are caught before compilation begins, offering modern LSP (Language Server Protocol) features like "Go to Definition."
+Juniper’s pipeline is explicitly staged and fully typed end-to-end.
 
-2. The DOM & Macro Expansion (/src/dom)
+### 1. Lexing & Parsing (`/src/parser`)
 
-The AST is traversed to expand macros (Wasm plugins) and resolve references. This results in a Reactive Document Object Model (RDOM). If a user changes a variable, only the affected nodes in the graph are dirtied and re-computed.
+* Zero-copy recursive-descent parser
+* Produces a Concrete Syntax Tree (CST)
+* Lowered into a strictly typed AST
+* Enables precise diagnostics and future LSP support
 
-3. Layout Engine (/src/layout)
+### 2. Document Model & Expansion (`/src/dom`)
 
-This is the core of Juniper. It transforms the logical DOM into a physical Box Model.
+* AST traversal resolves references and plugins
+* WebAssembly macros are expanded here
+* Produces a **Reactive Document Object Model (RDOM)**
+* Dependency-tracked: edits invalidate only affected nodes
 
-Text Shaping: Uses rustybuzz (a HarfBuzz port) for font shaping, ligatures, and kerning.
+### 3. Layout Engine (`/src/layout`)
 
-Line Breaking: Implements the Knuth-Plass total-fit algorithm to minimize raggedness across paragraphs.
+The heart of Juniper.
 
-Pagination: Uses a constraint solver to handle orphans, widows, and float placement (figures/tables).
+* **Text shaping:** OpenType shaping via `rustybuzz`
+* **Line breaking:** Knuth-Plass total-fit optimization
+* **Pagination:** Constraint solver handles:
 
-4. Rendering (/src/render)
+  * Page breaks
+  * Float placement
+  * Widows and orphans
+  * Multi-column flow
 
-The Box Model is strictly distinct from the output format.
+### 4. Rendering (`/src/render`)
 
-PDF: Rendered via skia-safe or native PDF generation commands.
+Layout is strictly decoupled from output.
 
-HTML: Mapped directly to HTML5 Custom Elements with CSS Grid for layout fidelity.
+* **PDF:** SVG or native PDF commands
+* **HTML:** HTML5 custom elements + CSS Grid
+* Identical layout semantics across formats
 
-🚀 Getting Started
-Prerequisites
+---
 
-Rust (latest stable)
-Cargo
+## 🚀 Getting Started
 
-Installation
+### Prerequisites
 
+* Rust (latest stable)
+* Cargo
+
+### Build from Source
+
+```bash
 git clone https://github.com/divijg19/Juniper.git
 cd Juniper
 cargo build --release
+```
 
-Usage
+### Basic Usage
 
-Create a file named paper.vtx:
+Create a file `paper.jun`:
 
-/section "Hello World"
-This is my first document.
+```juniper
+/section "Hello, World"
+This is my first Juniper document.
+```
 
 Compile it:
 
-./target/release/Juniper build paper.vtx --format=pdf
-📊 Benchmarks
-Metric	LaTeX (pdflatex)	Juniper (v0.1.0)
-Cold Start	~1.2s	~0.05s
-Incremental Build	N/A (Full Rebuild)	<10ms
-Error Clarity	! Undefined control sequence	Error: Line 5, Col 12: Unknown command
-Memory Safety	Unsafe	Safe (Rust)
-🗺️ Roadmap
+```bash
+./target/release/juniper build paper.jun --format=pdf
+```
 
-Core: Lexer and Parser (AST generation)
+---
 
-Core: Basic Text Shaping (Harfbuzz integration)
+## 📊 Benchmarks (Early)
 
-Layout: Knuth-Plass Line Breaking Algorithm
+| Metric            | LaTeX (pdflatex) | Juniper (v0.1.0)    |
+| ----------------- | ---------------- | ------------------- |
+| Cold Start        | ~1.2s            | ~0.05s              |
+| Incremental Build | Full rebuild     | <10ms               |
+| Error Diagnostics | Cryptic          | Line/column-precise |
+| Memory Safety     | Unsafe           | Guaranteed (Rust)   |
 
-Layout: Multi-column support
+---
 
-System: Wasm Plugin Host integration
+## 🗺️ Roadmap
 
-Output: PDF/X-4 Compliance
+### Core
 
-🤝 Contributing
+* [ ] Lexer & Parser (AST generation)
+* [ ] Typed document model
+* [ ] Stable public AST API
 
-This project is an educational exploration into typesetting algorithms and systems programming. Pull requests are welcome, particularly for:
+### Layout
 
-Improving the line-breaking cost functions.
+* [ ] Knuth-Plass line breaking
+* [ ] Multi-column layouts
+* [ ] Advanced float resolution
 
-Adding support for more OpenType font features.
+### System
 
-Writing documentation for the AST structure.
+* [ ] WebAssembly plugin host
+* [ ] Deterministic plugin caching
 
-Please read CONTRIBUTING.md before getting started.
+### Output
 
-📄 License
+* [ ] PDF/X-4 compliance
+* [ ] HTML export polish & accessibility audit
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+---
+
+## 🤝 Contributing
+
+Juniper is both a **serious long-term project** and a **deep educational exploration** into:
+
+* Typesetting algorithms
+* Constraint solvers
+* Reactive systems
+* Systems-level Rust architecture
+
+Contributions are especially welcome for:
+
+* Line-breaking cost function research
+* OpenType font feature support
+* AST and layout documentation
+
+Please see `CONTRIBUTING.md` before opening a PR.
