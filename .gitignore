@@ -1,0 +1,26 @@
+cargo.lock
+target/
+**/target/
+
+# These are backup files created by rust-analyzer, which is a popular language server for Rust.
+# They can be safely ignored as they are not part of the source code.
+*.rs.bk
+# Ignore the .vscode directory, which may contain user-specific settings and configurations for Visual Studio Code.
+.vscode/
+# Ignore the .idea directory, which may contain user-specific settings and configurations for JetBrains IDEs.
+.idea/
+# Ignore the .DS_Store file, which is a hidden file created by macOS to store custom attributes of a folder.
+.DS_Store
+# Ignore the .env files, which may contain sensitive environment variables and configuration settings.
+.env
+.env.local
+.env.*
+# Ignore the .log files, which may contain log output from the application.
+*.log
+# Ignore the .tmp files, which may be temporary files created during development.
+*.tmp
+# Ignore the .cache directory, which may contain cached files and data.
+.cache/
+# Ignore the .history directory, which may contain command history and other temporary files.
+.history/
+
