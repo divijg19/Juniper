@@ -1,4 +1,6 @@
-# `Juniper`
+# `Juniper` - The Future of Typesetting
+#### Product Name: `Vertex`
+> This name will be used when Juniper is promoted as a product and likely turned into an organization. The repository and internal references will still be `Juniper` for now, but the public-facing name on software and crates is `Vertex`. This allows us to build brand identity around a more evocative name while keeping the codebase consistent during development.
 
 <div align="center">
 
@@ -10,7 +12,7 @@
 A modern, Rust-native alternative to LaTeX—designed for speed, safety, and the web.
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/divijg19/Juniper/rust.yml?branch=main)](https://github.com/divijg19/Juniper/actions)
-[![Crates.io](https://img.shields.io/crates/v/juniper)](https://crates.io/crates/juniper)
+Crates.io link (when published)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 [![Language: Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org)
 
@@ -178,7 +180,7 @@ Compile it:
 
 ## 📊 Benchmarks (Early)
 
-| Metric            | LaTeX (pdflatex) | Juniper (v0.1.0)    |
+| Metric            | LaTeX (pdflatex) | Juniper (aim)    |
 | ----------------- | ---------------- | ------------------- |
 | Cold Start        | ~1.2s            | ~0.05s              |
 | Incremental Build | Full rebuild     | <10ms               |
