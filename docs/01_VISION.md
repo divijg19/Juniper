@@ -1,4 +1,4 @@
-# Juniper — Vision
+# Vision
 
 ## Why Juniper Exists
 
@@ -100,7 +100,7 @@ No privilege escalation.
 
 ## The Role of Rust
 
-Rust is not incidental—it is essential.
+Rust has proven its place as the perfect language for performance and safety critical systems and engines, and hence, is essential.
 
 Rust enables Juniper to guarantee:
 - memory safety
@@ -168,15 +168,4 @@ This project values:
 - explicit design over convenience
 - long-term maintainability over feature count
 
-Juniper is not yet stable.
-It is, however, deliberate.
-
----
-
-## Closing Statement
-
-Juniper is an attempt to answer a simple question honestly:
-
-> *If we were to design a typesetting engine today—knowing everything we now know—what would it look like?*
-
-This repository is that answer, in progress.
+Juniper is not yet stable, but is intentional and deliberate in its evolution.
