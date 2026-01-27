@@ -1,6 +1,6 @@
 [package]
-name = "wasm"
-version = "0.0.1"
+name = "juniper-wasm"
+version = "0.0.3"
 edition = "2024"
 
 [lib]
