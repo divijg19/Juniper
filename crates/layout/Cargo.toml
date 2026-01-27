@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 juniper-dom = { path = "../dom" }
+juniper-parser = { path = "../parser" }

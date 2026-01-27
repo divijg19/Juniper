@@ -1,9 +1,10 @@
 [package]
 name = "juniper-cli"
-version = "0.0.3"
+version = "0.0.4"
 edition = "2024"
 
 [dependencies]
 juniper-parser = { path = "../parser" }
 juniper-dom = { path = "../dom" }
 juniper-render = { path = "../renderer" }
+juniper-layout = { path = "../layout" }
