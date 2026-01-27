@@ -1,9 +1,6 @@
-# Juniper — Architecture
+# Architecture
 
-This document describes the **architectural structure** of Juniper: its core stages, invariants, and boundaries.
-
-It is not an API reference.
-It is a map of how the system thinks.
+This document describes the **architectural structure** of Juniper: its core stages, invariants, and boundaries. Not to be treated as an API reference, but a user-flow or mind task map of how the system thinks.
 
 ---
 
@@ -266,9 +263,9 @@ Breaking architectural boundaries may yield short-term speed—but long-term ins
 
 ## Closing Note
 
-Juniper’s architecture is designed to make **incorrect implementations difficult**, not easy.
+Juniper’s architecture is designed to make **incorrect implementations difficult**, not impossible.
 
-Contributors are expected to:
+Contributors are still expected to:
 - understand the pipeline
 - respect stage boundaries
 - justify deviations explicitly
