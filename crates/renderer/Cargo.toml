@@ -1,9 +1,10 @@
 [package]
-name = "renderer"
-version = "0.0.1"
+name = "juniper-render"
+version = "0.0.3"
 edition = "2024"
 
 [lib]
 path = "src/lib.rs"
 
 [dependencies]
+juniper-layout = { path = "../layout" }
