@@ -1,6 +1,8 @@
 [package]
-name = "dom"
-version = "0.0.1"
+name = "juniper-dom"
+version = "0.0.3"
 edition = "2024"
 
 [dependencies]
+juniper-parser = { path = "../parser" }
+juniper-wasm = { path = "../wasm" }
