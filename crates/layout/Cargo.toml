@@ -1,6 +1,7 @@
 [package]
-name = "layout"
-version = "0.0.1"
+name = "juniper-layout"
+version = "0.0.3"
 edition = "2024"
 
 [dependencies]
+juniper-dom = { path = "../dom" }
