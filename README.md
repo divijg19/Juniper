@@ -153,6 +153,23 @@ Layout is strictly decoupled from output.
 * Rust (latest stable)
 * Cargo
 
+### Quick Start
+- Ensure Rust is installed (rustup). The workspace uses the `stable` toolchain via `rust-toolchain.toml`.
+- Build the workspace:
+
+```bash
+cargo build --workspace
+```
+
+- Run the CLI example:
+
+```bash
+cargo run -p juniper-cli --quiet
+```
+
+### CI
+- A GitHub Actions workflow is included at `.github/workflows/ci.yml` to build and test on push/PR.
+
 ### Build from Source
 
 ```bash
