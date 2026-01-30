@@ -101,8 +101,8 @@ fn line_break(words: &[String], target: usize) -> Vec<Vec<String>> {
     while idx > 0 {
         let i = prev[idx];
         let mut line = Vec::new();
-        for k in i..idx {
-            line.push(words[k].clone());
+        for w in &words[i..idx] {
+            line.push(w.clone());
         }
         lines.push(line);
         idx = i;
