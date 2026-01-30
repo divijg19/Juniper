@@ -1,6 +1,6 @@
 [package]
 name = "juniper-render"
-version = "0.0.4"
+version = "0.0.6"
 edition = "2024"
 
 [lib]
@@ -8,3 +8,4 @@ path = "src/lib.rs"
 
 [dependencies]
 juniper-layout = { path = "../layout" }
+html-escape = "0.2"
