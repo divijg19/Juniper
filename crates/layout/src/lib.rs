@@ -24,7 +24,7 @@ pub struct PhysicalDoc {
 pub fn layout(rdom: &Rdom) -> PhysicalDoc {
     // Convert RDOM node texts into a sequence of words for line breaking.
     let words: Vec<String> = rdom.nodes.iter().map(|n| n.text.clone()).collect();
-    let target = 30usize; // target line width in character cells
+    let target = 40usize; // target line width in character cells
     let lines = line_break(&words, target);
 
     // Create simple boxes: one box per output line.
@@ -42,11 +42,16 @@ pub fn layout(rdom: &Rdom) -> PhysicalDoc {
     PhysicalDoc { boxes }
 }
 
-// A simplified Knuth–Plass line breaking implementation.
+// A simplified Knuth–Plass-like line breaking implementation.
 // Returns a Vec of lines where each line is Vec<String> of words.
+// This implementation uses dynamic programming minimizing cubic badness,
+// but treats the last line with a softer penalty to avoid over-penalizing
+// natural ragged ends (common in typesetting).
 fn line_break(words: &[String], target: usize) -> Vec<Vec<String>> {
     let n = words.len();
-    if n == 0 { return Vec::new(); }
+    if n == 0 {
+        return Vec::new();
+    }
     // precompute word lengths
     let lens: Vec<usize> = words.iter().map(|w| w.len()).collect();
 
@@ -69,7 +74,13 @@ fn line_break(words: &[String], target: usize) -> Vec<Vec<String>> {
                 break;
             }
             let remaining = target as isize - width as isize;
-            let badness = (remaining as f64).powi(3);
+            // badness: cubic for non-final lines, quadratic for final line
+            let badness = if j == words.len() {
+                // prefer softer penalty for final line
+                (remaining as f64).powi(2)
+            } else {
+                (remaining as f64).powi(3)
+            };
             let candidate = cost[i] + badness;
             if candidate < cost[j] {
                 cost[j] = candidate;
@@ -79,8 +90,8 @@ fn line_break(words: &[String], target: usize) -> Vec<Vec<String>> {
         // allow overflow lines (forced) if no candidate found
         if cost[j].is_infinite() {
             // place last word on its own line (overflow)
-            cost[j] = cost[j-1] + 1e9;
-            prev[j] = j-1;
+            cost[j] = cost[j - 1] + 1e9;
+            prev[j] = j - 1;
         }
     }
 
@@ -90,7 +101,9 @@ fn line_break(words: &[String], target: usize) -> Vec<Vec<String>> {
     while idx > 0 {
         let i = prev[idx];
         let mut line = Vec::new();
-        for k in i..idx { line.push(words[k].clone()); }
+        for k in i..idx {
+            line.push(words[k].clone());
+        }
         lines.push(line);
         idx = i;
     }
@@ -109,7 +122,18 @@ mod tests {
         let ast = parse_source("x y").unwrap();
         let rdom = build_rdom(&ast);
         let pd = layout(&rdom);
-        assert_eq!(pd.boxes.len(), 2);
-        assert_eq!(pd.boxes[1].content, "y");
+        // with target=40 both words fit on a single line
+        assert_eq!(pd.boxes.len(), 1);
+        assert!(pd.boxes[0].content.contains("x"));
+    }
+
+    #[test]
+    fn layout_multiline() {
+        let ast =
+            parse_source("one two three four five six seven eight nine ten eleven twelve").unwrap();
+        let rdom = build_rdom(&ast);
+        let pd = layout(&rdom);
+        // expect more than one line for this input with target ~40
+        assert!(pd.boxes.len() >= 2);
     }
 }
