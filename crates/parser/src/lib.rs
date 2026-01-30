@@ -193,7 +193,6 @@ mod tests {
                 assert!(matches!(inlines[0], AstInline::Word(ref w) if w == "Hello"));
                 assert!(matches!(inlines[1], AstInline::Reference(ref r) if r == "ref"));
             }
-            _ => panic!("expected paragraph"),
         }
     }
 }
