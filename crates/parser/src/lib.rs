@@ -27,17 +27,23 @@ pub struct CST {
     pub tokens: Vec<Token>,
 }
 
-/// Typed AST nodes.
+/// Inline AST nodes (words, references).
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum AstNode {
+pub enum AstInline {
     Word(String),
     Reference(String),
 }
 
-/// AST is a small typed sequence produced from the CST.
+/// Block-level AST: paragraphs containing inline nodes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AstBlock {
+    Paragraph(Vec<AstInline>),
+}
+
+/// AST is a sequence of block-level elements.
 #[derive(Debug, Clone)]
 pub struct AST {
-    pub nodes: Vec<AstNode>,
+    pub blocks: Vec<AstBlock>,
 }
 
 /// Error returned by the parser or lexer.
@@ -69,16 +75,20 @@ pub fn lex(source: &str) -> CST {
             let mut j = i;
             while j < s.len() {
                 let c = s.as_bytes()[j] as char;
-                if c.is_alphanumeric() || c == '_' || c == '-' { j += 1; } else { break }
+                if c.is_alphanumeric() || c == '_' || c == '-' {
+                    j += 1;
+                } else {
+                    break;
+                }
             }
-            let val = s[start+1..j].to_string();
-            tokens.push(Token::Ref(val, Span{start, end: j}));
+            let val = s[start + 1..j].to_string();
+            tokens.push(Token::Ref(val, Span { start, end: j }));
             i = j;
             continue;
         }
         if ch.is_ascii_punctuation() {
             let start = i;
-            tokens.push(Token::Punct(ch, Span{start, end: i+1}));
+            tokens.push(Token::Punct(ch, Span { start, end: i + 1 }));
             i += 1;
             continue;
         }
@@ -87,28 +97,79 @@ pub fn lex(source: &str) -> CST {
         let mut j = i;
         while j < s.len() {
             let c = s.as_bytes()[j] as char;
-            if c.is_whitespace() || c.is_ascii_punctuation() { break }
+            if c.is_whitespace() || c.is_ascii_punctuation() {
+                break;
+            }
             j += 1;
         }
         let val = s[start..j].to_string();
-        tokens.push(Token::Word(val, Span{start, end: j}));
+        tokens.push(Token::Word(val, Span { start, end: j }));
         i = j;
     }
-    tokens.push(Token::Eof(Span{start: s.len(), end: s.len()}));
-    CST { source: s.to_string(), tokens }
+    tokens.push(Token::Eof(Span {
+        start: s.len(),
+        end: s.len(),
+    }));
+    CST {
+        source: s.to_string(),
+        tokens,
+    }
 }
 
 /// Lower CST into a typed AST. This step performs simple classification only.
 pub fn lower(cst: &CST) -> AST {
-    let mut nodes = Vec::new();
-    for t in &cst.tokens {
-        match t {
-            Token::Word(w, _) => nodes.push(AstNode::Word(w.clone())),
-            Token::Ref(r, _) => nodes.push(AstNode::Reference(r.clone())),
-            _ => {}
+    // Group tokens into paragraphs separated by empty tokens (Eof or punctuation
+    // that is a newline). Since lexer doesn't produce explicit newlines, we use
+    // a simple heuristic: treat consecutive Word/Ref tokens and Punct('\n')
+    // are not present; instead split by double newlines in source.
+    let mut blocks = Vec::new();
+    for para in cst.source.split("\n\n") {
+        let mut inlines = Vec::new();
+        let mut i = 0usize;
+        while i < para.len() {
+            // reuse a tiny inner lexer on the paragraph string
+            let ch = para.as_bytes()[i] as char;
+            if ch.is_whitespace() {
+                i += 1;
+                continue;
+            }
+            if ch == '@' {
+                let start = i;
+                i += 1;
+                let mut j = i;
+                while j < para.len() {
+                    let c = para.as_bytes()[j] as char;
+                    if c.is_alphanumeric() || c == '_' || c == '-' {
+                        j += 1;
+                    } else {
+                        break;
+                    }
+                }
+                let val = para[start + 1..j].to_string();
+                inlines.push(AstInline::Reference(val));
+                i = j;
+                continue;
+            }
+            if ch.is_ascii_punctuation() {
+                i += 1;
+                continue;
+            }
+            let start = i;
+            let mut j = i;
+            while j < para.len() {
+                let c = para.as_bytes()[j] as char;
+                if c.is_whitespace() || c.is_ascii_punctuation() {
+                    break;
+                }
+                j += 1;
+            }
+            let val = para[start..j].to_string();
+            inlines.push(AstInline::Word(val));
+            i = j;
         }
+        blocks.push(AstBlock::Paragraph(inlines));
     }
-    AST { nodes }
+    AST { blocks }
 }
 
 /// Convenience: parse source text to AST (lexer + lowering).
@@ -127,7 +188,12 @@ mod tests {
         let cst = lex(text);
         assert!(matches!(cst.tokens.first().unwrap(), Token::Word(_, _)));
         let ast = lower(&cst);
-        assert!(matches!(ast.nodes[0], AstNode::Word(ref w) if w == "Hello"));
-        assert!(matches!(ast.nodes[1], AstNode::Reference(ref r) if r == "ref"));
+        match &ast.blocks[0] {
+            AstBlock::Paragraph(inlines) => {
+                assert!(matches!(inlines[0], AstInline::Word(ref w) if w == "Hello"));
+                assert!(matches!(inlines[1], AstInline::Reference(ref r) if r == "ref"));
+            }
+            _ => panic!("expected paragraph"),
+        }
     }
 }
