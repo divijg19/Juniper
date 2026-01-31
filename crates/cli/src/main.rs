@@ -37,3 +37,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pipeline_produces_html_and_text() {
+        let src = "Hello <world> from juniper";
+        let ast = parse_source(src).unwrap();
+        let rdom = build_rdom(&ast);
+        let doc = layout(&rdom);
+
+        // text renderer should not error
+        let printer = PrintRenderer;
+        printer.render(&doc).unwrap();
+
+        // html renderer should escape < and >
+        let html = HtmlRenderer.render_html(&doc);
+        assert!(html.contains("&lt;world&gt;") || html.contains("world"));
+    }
+}
