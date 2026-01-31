@@ -19,3 +19,24 @@ pub trait Plugin {
 pub fn version() -> &'static str {
     "0.1.0"
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct EchoPlugin;
+    impl Plugin for EchoPlugin {
+        fn run(&self, input: &str) -> PluginResult {
+            PluginResult {
+                output: format!("echo:{}", input),
+            }
+        }
+    }
+
+    #[test]
+    fn plugin_run_returns_output() {
+        let p = EchoPlugin;
+        let res = p.run("hello");
+        assert_eq!(res.output, "echo:hello");
+    }
+}
