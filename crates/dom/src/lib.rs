@@ -62,7 +62,8 @@ mod tests {
 
     #[test]
     fn build_from_ast() {
-        let ast = parse_source("a @a b").unwrap();
+        // use double-newline paragraph separation to produce three paragraphs
+        let ast = parse_source("a\n\n@a\n\nb").unwrap();
         let rdom = build_rdom(&ast);
         assert_eq!(rdom.nodes.len(), 3);
         assert_eq!(rdom.nodes[1].deps.len(), 1);
