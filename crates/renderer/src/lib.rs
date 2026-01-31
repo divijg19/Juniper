@@ -49,3 +49,25 @@ impl Renderer for HtmlRenderer {
 pub fn version() -> &'static str {
     "0.1.0"
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use juniper_layout::{PhysicalBox, PhysicalDoc};
+
+    #[test]
+    fn html_renderer_escapes_content() {
+        let doc = PhysicalDoc {
+            boxes: vec![PhysicalBox {
+                x: 0.0,
+                y: 0.0,
+                w: 10.0,
+                h: 10.0,
+                content: "<unsafe & text>".to_string(),
+            }],
+        };
+        let html = HtmlRenderer.render_html(&doc);
+        assert!(html.contains("&lt;unsafe &amp; text&gt;"));
+        assert!(html.starts_with("<html>"));
+    }
+}
