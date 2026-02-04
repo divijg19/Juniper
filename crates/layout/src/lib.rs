@@ -35,7 +35,15 @@ pub fn layout(rdom: &Rdom) -> PhysicalDoc {
             .split_whitespace()
             .map(|s| s.to_string())
             .collect();
-        let lines = knuth_plass_line_break(&words, target);
+        let mut lines = knuth_plass_line_break(&words, target);
+
+        // Optional post-process hyphenation (opt-in via env var). This is a
+        // conservative heuristic hyphenator to split very long words across
+        // lines when enabled. It uses simple character-based widths and is
+        // disabled by default so tests and behavior remain stable.
+        if std::env::var("JUNIPER_HYPHENATE").as_deref() == Ok("1") {
+            hyphenate_lines(&mut lines, target);
+        }
         for (i, line) in lines.iter().enumerate() {
             let content = line.join(" ");
             boxes.push(PhysicalBox {
@@ -241,6 +249,44 @@ fn knuth_plass_line_break(words: &[String], target: usize) -> Vec<Vec<String>> {
     }
     lines.reverse();
     lines
+}
+
+// Simple post-process hyphenation: for each line (except the last), if the
+// last word is long, attempt to split it so the prefix fits into the line
+// width. This is a heuristic and is enabled only when `JUNIPER_HYPHENATE=1`.
+fn hyphenate_lines(lines: &mut Vec<Vec<String>>, target: usize) {
+    if lines.len() < 2 {
+        return;
+    }
+    let hyphen = "-";
+    for idx in 0..lines.len() - 1 {
+        if let Some(last) = lines[idx].last().cloned() {
+            if last.len() <= 8 {
+                continue;
+            }
+            // try splits from longer prefix to shorter
+            let mut split_pos = None;
+            for k in (3..(last.len() - 2)).rev() {
+                let prefix = &last[..k];
+                // approximate width: prefix chars + hyphen
+                let width = prefix.len() + hyphen.len();
+                if width <= target {
+                    split_pos = Some(k);
+                    break;
+                }
+            }
+            if let Some(k) = split_pos {
+                let prefix = format!("{}{}", &last[..k], hyphen);
+                let suffix = last[k..].to_string();
+                // replace last on current line with prefix
+                if let Some(last_mut) = lines[idx].last_mut() {
+                    *last_mut = prefix;
+                }
+                // insert suffix at start of next line
+                lines[idx + 1].insert(0, suffix);
+            }
+        }
+    }
 }
 
 // A simplified Knuth–Plass-like line breaking implementation.
