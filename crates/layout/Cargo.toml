@@ -7,4 +7,4 @@ edition = "2024"
 juniper-dom = { path = "../dom" }
 juniper-parser = { path = "../parser" }
 rustybuzz = "0.20.1"
-hyphenation = "0.8"
+hyphenation = { version = "0.8", features = ["embed_en-us"] }

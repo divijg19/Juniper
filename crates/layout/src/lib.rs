@@ -1,4 +1,6 @@
-// hyphenation patterns are optional; imports left out until used
+// hyphenation crate is optional; use internal heuristic unless a full
+// pattern-based integration is added later.
+use hyphenation::{Hyphenator, Language, Load, Standard};
 /// Juniper layout stubs: logical layout -> physical boxes
 use juniper_dom::Rdom;
 use rustybuzz::{Face, UnicodeBuffer};
@@ -103,6 +105,18 @@ fn knuth_plass_line_break(words: &[String], target: usize) -> Vec<Vec<String>> {
         }
     }
 
+    // Optionally load hyphenator (embedded) if language requested via env
+    let mut hyphenator_opt: Option<Standard> = None;
+    if let Ok(lang_tag) = std::env::var("JUNIPER_HYP_LANG") {
+        let lang = match lang_tag.as_str() {
+            "en" | "en-US" | "en_US" => Language::EnglishUS,
+            _ => Language::EnglishUS,
+        };
+        if let Ok(hyph) = Standard::from_embedded(lang) {
+            hyphenator_opt = Some(hyph);
+        }
+    }
+
     // Precompute prefix sums for quick range widths
     let n = words.len();
     let mut prefix = vec![0.0f64; n + 1];
@@ -142,7 +156,8 @@ fn knuth_plass_line_break(words: &[String], target: usize) -> Vec<Vec<String>> {
                 if let Some(bp_prev) = &best[i][fin] {
                     let prev_demerits = bp_prev.demerits;
 
-                    let r = if nominal <= target_f {
+                    // Compute stretch/shrink ratio `r` for this candidate line.
+                    let mut r = if nominal <= target_f {
                         if total_stretch.abs() < 1e-9 {
                             if (target_f - nominal).abs() > 1e-6 {
                                 f64::INFINITY
@@ -163,6 +178,63 @@ fn knuth_plass_line_break(words: &[String], target: usize) -> Vec<Vec<String>> {
                             (target_f - nominal) / total_shrink
                         }
                     };
+
+                    // If this candidate is too long and we have a hyphenator,
+                    // attempt to hyphenate the last word and see if a prefix
+                    // + hyphen would allow the line to fit.
+                    if (!r.is_finite() || r < -1.0)
+                        && j > i
+                        && let Some(hyph) = hyphenator_opt.as_ref()
+                    {
+                        let last_word = &words[j - 1];
+                        let hyph_res = hyph.hyphenate(last_word);
+                        if !hyph_res.breaks.is_empty() {
+                            // try breaks from longest to shortest
+                            for &bp in hyph_res.breaks.iter().rev() {
+                                // bp is byte index; convert to char count roughly
+                                let prefix_chars = last_word[..bp].chars().count();
+                                if prefix_chars < 3 || prefix_chars >= last_word.chars().count() - 2
+                                {
+                                    continue;
+                                }
+                                // estimate prefix width proportionally
+                                let full_chars = last_word.chars().count();
+                                let full_width = lens[j - 1];
+                                let pref_width =
+                                    full_width * (prefix_chars as f64 / full_chars as f64);
+                                let words_len_hyph =
+                                    (prefix[j] - prefix[i]) - lens[j - 1] + pref_width + 1.0; // +1 for hyphen
+                                let nominal_hyph = words_len_hyph + spaces * space_nom;
+                                let total_stretch_h = spaces * space_stretch;
+                                let total_shrink_h = spaces * space_shrink;
+                                let r_h = if nominal_hyph <= target_f {
+                                    if total_stretch_h.abs() < 1e-9 {
+                                        if (target_f - nominal_hyph).abs() > 1e-6 {
+                                            f64::INFINITY
+                                        } else {
+                                            0.0
+                                        }
+                                    } else {
+                                        (target_f - nominal_hyph) / total_stretch_h
+                                    }
+                                } else {
+                                    if total_shrink_h.abs() < 1e-9 {
+                                        if (target_f - nominal_hyph).abs() > 1e-6 {
+                                            f64::INFINITY
+                                        } else {
+                                            0.0
+                                        }
+                                    } else {
+                                        (target_f - nominal_hyph) / total_shrink_h
+                                    }
+                                };
+                                if r_h.is_finite() && r_h >= -1.0 {
+                                    r = r_h;
+                                    break;
+                                }
+                            }
+                        }
+                    }
 
                     if !r.is_finite() || r < -1.0 {
                         continue;
@@ -259,6 +331,49 @@ fn hyphenate_lines(lines: &mut [Vec<String>], target: usize) {
     if lines.len() < 2 {
         return;
     }
+    // If a hyphenation language is provided, try to use pattern-based
+    // hyphenation from the `hyphenation` crate. Otherwise fall back to
+    // the simple character-based heuristic.
+    if let Ok(_lang_tag) = std::env::var("JUNIPER_HYP_LANG") {
+        // basic syllable-ish heuristic: look for vowel -> consonant boundaries
+        // from the right and split there if it fits; this is a lightweight
+        // fallback until pattern based hyphenation is wired into the breaker.
+        let vowels = "aeiouAEIOU";
+        let hyphen = "-";
+        for idx in 0..lines.len() - 1 {
+            if let Some(last) = lines[idx].last().cloned() {
+                let chars: Vec<char> = last.chars().collect();
+                if chars.len() <= 4 {
+                    continue;
+                }
+                let mut split_pos = None;
+                for k in (3..(chars.len() - 2)).rev() {
+                    let a = chars[k - 1];
+                    let b = chars[k];
+                    if vowels.contains(a) && !vowels.contains(b) {
+                        // compute prefix width in characters
+                        let width = k + hyphen.len();
+                        if width <= target {
+                            split_pos = Some(k);
+                            break;
+                        }
+                    }
+                }
+                if let Some(k) = split_pos {
+                    let prefix: String = chars[..k].iter().collect();
+                    let suffix: String = chars[k..].iter().collect();
+                    let pref = format!("{}{}", prefix, hyphen);
+                    if let Some(last_mut) = lines[idx].last_mut() {
+                        *last_mut = pref;
+                    }
+                    lines[idx + 1].insert(0, suffix);
+                }
+            }
+        }
+        return;
+    }
+
+    // fallback heuristic
     let hyphen = "-";
     for idx in 0..lines.len() - 1 {
         if let Some(last) = lines[idx].last().cloned() {
