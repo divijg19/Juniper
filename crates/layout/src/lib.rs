@@ -1,5 +1,8 @@
 /// Juniper layout stubs: logical layout -> physical boxes
 use juniper_dom::Rdom;
+use rustybuzz::{Face, UnicodeBuffer};
+use std::env;
+use std::fs;
 
 #[derive(Debug, Clone)]
 pub struct LogicalBlock {
@@ -51,8 +54,193 @@ pub fn layout(rdom: &Rdom) -> PhysicalDoc {
 // For now it delegates to the existing dynamic programming line breaker to
 // provide correct results while the full algorithm is implemented incrementally.
 fn knuth_plass_line_break(words: &[String], target: usize) -> Vec<Vec<String>> {
-    // TODO: replace this with the full Knuth–Plass total-fit algorithm.
-    line_break(words, target)
+    // Full (simplified) Knuth–Plass total-fit implementation with shaping.
+    if words.is_empty() {
+        return Vec::new();
+    }
+
+    // Compute word widths either via rustybuzz shaping if `JUNIPER_FONT_PATH`
+    // is set and points to a valid font, otherwise fall back to character
+    // counts as an approximate width.
+    let mut lens: Vec<f64> = vec![0.0f64; words.len()];
+    if let Ok(path) = env::var("JUNIPER_FONT_PATH") {
+        if let Ok(data) = fs::read(&path) {
+            if let Some(face) = Face::from_slice(&data, 0) {
+                let upem = face.units_per_em() as f64;
+                let px_per_em = 10.0f64; // nominal design size for metrics
+                for (i, w) in words.iter().enumerate() {
+                    let mut buf = UnicodeBuffer::new();
+                    buf.push_str(w);
+                    let shaped = rustybuzz::shape(&face, &[], buf);
+                    let mut adv: i32 = 0;
+                    for pos in shaped.glyph_positions() {
+                        adv += pos.x_advance;
+                    }
+                    lens[i] = (adv as f64) * (px_per_em / upem);
+                }
+            } else {
+                for (i, w) in words.iter().enumerate() {
+                    lens[i] = w.len() as f64;
+                }
+            }
+        } else {
+            for (i, w) in words.iter().enumerate() {
+                lens[i] = w.len() as f64;
+            }
+        }
+    } else {
+        for (i, w) in words.iter().enumerate() {
+            lens[i] = w.len() as f64;
+        }
+    }
+
+    // Precompute prefix sums for quick range widths
+    let n = words.len();
+    let mut prefix = vec![0.0f64; n + 1];
+    for i in 0..n {
+        prefix[i + 1] = prefix[i] + lens[i];
+    }
+
+    // Glue model (nominal space, stretch, shrink)
+    let space_nom = 1.0f64;
+    let space_stretch = 3.0f64;
+    let space_shrink = 3.0f64;
+    let target_f = target as f64;
+
+    #[derive(Clone)]
+    struct Breakpoint {
+        demerits: f64,
+        fitness: usize,
+        prev: usize,
+    }
+
+    let mut best: Vec<[Option<Breakpoint>; 4]> = vec![[None, None, None, None]; n + 1];
+    best[0][1] = Some(Breakpoint {
+        demerits: 0.0,
+        fitness: 1,
+        prev: 0,
+    });
+
+    for j in 1..=n {
+        for i in 0..j {
+            let words_len = prefix[j] - prefix[i];
+            let spaces = (j - i).saturating_sub(1) as f64;
+            let nominal = words_len + spaces * space_nom;
+            let total_stretch = spaces * space_stretch;
+            let total_shrink = spaces * space_shrink;
+
+            for fin in 0..4usize {
+                if let Some(bp_prev) = &best[i][fin] {
+                    let prev_demerits = bp_prev.demerits;
+
+                    let r = if nominal <= target_f {
+                        if total_stretch.abs() < 1e-9 {
+                            if (target_f - nominal).abs() > 1e-6 {
+                                f64::INFINITY
+                            } else {
+                                0.0
+                            }
+                        } else {
+                            (target_f - nominal) / total_stretch
+                        }
+                    } else {
+                        if total_shrink.abs() < 1e-9 {
+                            if (target_f - nominal).abs() > 1e-6 {
+                                f64::INFINITY
+                            } else {
+                                0.0
+                            }
+                        } else {
+                            (target_f - nominal) / total_shrink
+                        }
+                    };
+
+                    if !r.is_finite() || r < -1.0 {
+                        continue;
+                    }
+
+                    let badness = {
+                        let x = (100.0 * r).abs();
+                        let b = x.powi(3);
+                        if b > 1e12 { 1e12 } else { b }
+                    };
+
+                    let fitness = if r < -0.5 {
+                        0usize
+                    } else if r <= 0.5 {
+                        1usize
+                    } else if r <= 1.0 {
+                        2usize
+                    } else {
+                        3usize
+                    };
+
+                    let penalty = 0.0f64;
+                    let mut demerits = prev_demerits + (badness + penalty).powi(2);
+                    if (bp_prev.fitness as i32 - fitness as i32).abs() > 1 {
+                        demerits += 10000.0;
+                    }
+
+                    match &best[j][fitness] {
+                        Some(existing) => {
+                            if demerits < existing.demerits {
+                                best[j][fitness] = Some(Breakpoint {
+                                    demerits,
+                                    fitness,
+                                    prev: i,
+                                });
+                            }
+                        }
+                        None => {
+                            best[j][fitness] = Some(Breakpoint {
+                                demerits,
+                                fitness,
+                                prev: i,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // pick best final
+    let mut best_final: Option<(f64, usize)> = None;
+    for (f, opt_bp) in best[n].iter().enumerate().take(4) {
+        if let Some(bp) = opt_bp
+            && (best_final.is_none() || bp.demerits < best_final.unwrap().0)
+        {
+            best_final = Some((bp.demerits, f));
+        }
+    }
+    if best_final.is_none() {
+        return line_break(words, target);
+    }
+
+    let mut lines = Vec::new();
+    let mut j = n;
+    let mut fitness = best_final.unwrap().1;
+    while j > 0 {
+        let bp = best[j][fitness].as_ref().unwrap();
+        let prev = bp.prev;
+        lines.push(words[prev..j].to_vec());
+
+        // pick previous fitness with minimal demerits
+        let mut next_f = 0usize;
+        let mut min_dem = f64::INFINITY;
+        for (f, opt_bp_prev) in best[prev].iter().enumerate().take(4) {
+            if let Some(bp_prev) = opt_bp_prev
+                && bp_prev.demerits < min_dem
+            {
+                min_dem = bp_prev.demerits;
+                next_f = f;
+            }
+        }
+        fitness = next_f;
+        j = prev;
+    }
+    lines.reverse();
+    lines
 }
 
 // A simplified Knuth–Plass-like line breaking implementation.
@@ -86,6 +274,7 @@ fn line_break(words: &[String], target: usize) -> Vec<Vec<String>> {
                 // too long, stop increasing i
                 break;
             }
+            // Full (simplified) Knuth–Plass total-fit implementation.
             let remaining = target as isize - width as isize;
             // badness: cubic for non-final lines, quadratic for final line
             let badness = if j == words.len() {
