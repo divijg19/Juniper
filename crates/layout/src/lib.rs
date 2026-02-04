@@ -22,33 +22,37 @@ pub struct PhysicalDoc {
 }
 
 pub fn layout(rdom: &Rdom) -> PhysicalDoc {
-    // Convert RDOM node texts into a sequence of words for line breaking.
-    let words: Vec<String> = rdom
-        .nodes
-        .iter()
-        .flat_map(|n| {
-            n.text
-                .split_whitespace()
-                .map(|s| s.to_string())
-                .collect::<Vec<_>>()
-        })
-        .collect();
     let target = 30usize; // target line width in character cells
-    let lines = line_break(&words, target);
 
-    // Create simple boxes: one box per output line.
+    // Process each RDOM node (paragraph) individually using the line breaker.
     let mut boxes = Vec::new();
-    for (i, line) in lines.iter().enumerate() {
-        let content = line.join(" ");
-        boxes.push(PhysicalBox {
-            x: 0.0,
-            y: (i as f32) * 12.0,
-            w: target as f32,
-            h: 12.0,
-            content,
-        });
+    for (pidx, node) in rdom.nodes.iter().enumerate() {
+        let words: Vec<String> = node
+            .text
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
+        let lines = knuth_plass_line_break(&words, target);
+        for (i, line) in lines.iter().enumerate() {
+            let content = line.join(" ");
+            boxes.push(PhysicalBox {
+                x: 0.0,
+                y: ((pidx * 100) as f32) + (i as f32) * 12.0,
+                w: target as f32,
+                h: 12.0,
+                content,
+            });
+        }
     }
     PhysicalDoc { boxes }
+}
+
+// Public wrapper that will eventually host a full Knuth–Plass implementation.
+// For now it delegates to the existing dynamic programming line breaker to
+// provide correct results while the full algorithm is implemented incrementally.
+fn knuth_plass_line_break(words: &[String], target: usize) -> Vec<Vec<String>> {
+    // TODO: replace this with the full Knuth–Plass total-fit algorithm.
+    line_break(words, target)
 }
 
 // A simplified Knuth–Plass-like line breaking implementation.
@@ -149,6 +153,33 @@ mod tests {
         // expect more than one line for this long input
         assert!(
             pd.boxes.len() >= 2,
+            "expected multiple lines, got {}",
+            pd.boxes.len()
+        );
+    }
+
+    #[test]
+    fn long_word_overflow() {
+        // a single word longer than target should still produce a box (overflow)
+        let long_word = std::iter::repeat('a').take(120).collect::<String>();
+        let ast = parse_source(&long_word).unwrap();
+        let rdom = build_rdom(&ast);
+        let pd = layout(&rdom);
+        assert_eq!(pd.boxes.len(), 1);
+        assert!(pd.boxes[0].content.contains(&long_word));
+    }
+
+    #[test]
+    fn many_short_words_generate_multiple_lines() {
+        let long = (0..200)
+            .map(|_| "x".to_string())
+            .collect::<Vec<_>>()
+            .join(" ");
+        let ast = parse_source(&long).unwrap();
+        let rdom = build_rdom(&ast);
+        let pd = layout(&rdom);
+        assert!(
+            pd.boxes.len() >= 3,
             "expected multiple lines, got {}",
             pd.boxes.len()
         );
