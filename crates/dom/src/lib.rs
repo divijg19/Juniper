@@ -39,7 +39,9 @@ pub fn build_rdom(ast: &AST) -> Rdom {
                             // attempt to resolve reference to a prior paragraph containing the token
                             for pn in &nodes {
                                 if pn.text.split_whitespace().any(|tok| tok == r) {
-                                    deps.push(pn.id);
+                                    if !deps.contains(&pn.id) {
+                                        deps.push(pn.id);
+                                    }
                                     break;
                                 }
                             }
@@ -68,5 +70,27 @@ mod tests {
         assert_eq!(rdom.nodes.len(), 3);
         assert_eq!(rdom.nodes[1].deps.len(), 1);
         assert_eq!(rdom.nodes[1].deps[0], 0);
+    }
+
+    #[test]
+    fn unresolved_forward_reference() {
+        // reference to a later paragraph should NOT resolve
+        let ast = parse_source("@later\n\nlater").unwrap();
+        let rdom = build_rdom(&ast);
+        assert_eq!(rdom.nodes.len(), 2);
+        assert_eq!(rdom.nodes[0].deps.len(), 0);
+    }
+
+    #[test]
+    fn multiple_references_and_deps() {
+        let ast = parse_source("one two\n\n@one @two").unwrap();
+        let rdom = build_rdom(&ast);
+        assert_eq!(rdom.nodes.len(), 2);
+        // second node should have deps pointing to the first paragraph
+        assert_eq!(rdom.nodes[1].deps.len(), 1);
+        assert_eq!(rdom.nodes[1].deps[0], 0);
+        // and its text should contain both references literalized
+        assert!(rdom.nodes[1].text.contains("@one"));
+        assert!(rdom.nodes[1].text.contains("@two"));
     }
 }
