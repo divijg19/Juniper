@@ -1,3 +1,4 @@
+// hyphenation patterns are optional; imports left out until used
 /// Juniper layout stubs: logical layout -> physical boxes
 use juniper_dom::Rdom;
 use rustybuzz::{Face, UnicodeBuffer};
@@ -42,7 +43,7 @@ pub fn layout(rdom: &Rdom) -> PhysicalDoc {
         // lines when enabled. It uses simple character-based widths and is
         // disabled by default so tests and behavior remain stable.
         if std::env::var("JUNIPER_HYPHENATE").as_deref() == Ok("1") {
-            hyphenate_lines(&mut lines, target);
+            hyphenate_lines(&mut lines[..], target);
         }
         for (i, line) in lines.iter().enumerate() {
             let content = line.join(" ");
@@ -254,7 +255,7 @@ fn knuth_plass_line_break(words: &[String], target: usize) -> Vec<Vec<String>> {
 // Simple post-process hyphenation: for each line (except the last), if the
 // last word is long, attempt to split it so the prefix fits into the line
 // width. This is a heuristic and is enabled only when `JUNIPER_HYPHENATE=1`.
-fn hyphenate_lines(lines: &mut Vec<Vec<String>>, target: usize) {
+fn hyphenate_lines(lines: &mut [Vec<String>], target: usize) {
     if lines.len() < 2 {
         return;
     }
@@ -371,7 +372,7 @@ mod tests {
         let rdom = build_rdom(&ast);
         let pd = layout(&rdom);
         // with target small, both words may fit on a single line
-        assert!(pd.boxes.len() >= 1);
+        assert!(!pd.boxes.is_empty());
         assert!(pd.boxes[0].content.contains("x"));
     }
 
@@ -396,7 +397,7 @@ mod tests {
     #[test]
     fn long_word_overflow() {
         // a single word longer than target should still produce a box (overflow)
-        let long_word = std::iter::repeat('a').take(120).collect::<String>();
+        let long_word = "a".repeat(120);
         let ast = parse_source(&long_word).unwrap();
         let rdom = build_rdom(&ast);
         let pd = layout(&rdom);

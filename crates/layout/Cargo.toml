@@ -1,9 +1,10 @@
 [package]
 name = "juniper-layout"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 
 [dependencies]
 juniper-dom = { path = "../dom" }
 juniper-parser = { path = "../parser" }
 rustybuzz = "0.20.1"
+hyphenation = "0.8"
